@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Responsive Image Resizer | Free Online Tool</title>
+    <meta name="description" content="Easily resize and optimize your images online for free. Supports various aspect ratios like 16:9, 9:16, 1:1, custom dimensions, and image quality optimization. Perfect for social media, blogs, and websites.">
+    <meta name="keywords" content="image resizer, resize image, online image tool, aspect ratio converter, image optimizer, free image resizer, 9:16 resizer, 16:9 resizer, square image resizer, crop image, change aspect ratio">
+    <link rel="canonical" href="https://yourdomain.com/image-resizer"> <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon"> </head>
+<body>
+    <header>
+        <h1>🖼️ Image Resizer & Optimizer</h1>
+    </header>
+
+    <main>
+        <div class="resizer-container">
+            <div class="controls">
+                <h2>Controls</h2>
+
+                <div class="control-group">
+                    <label for="imageUpload">1. Upload Image:</label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+
+                <div class="control-group">
+                    <label for="aspectRatio">2. Select Aspect Ratio:</label>
+                    <select id="aspectRatio">
+                        <option value="original">Original Aspect Ratio</option>
+                        <option value="16:9">16:9 (Widescreen)</option>
+                        <option value="9:16">9:16 (Tall Screen)</option>
+                        <option value="4:3">4:3 (Standard Monitor)</option>
+                        <option value="3:4">3:4 (Portrait Standard)</option>
+                        <option value="1:1">1:1 (Square)</option>
+                        <option value="3:2">3:2 (Photography)</option>
+                        <option value="2:3">2:3 (Portrait Photo)</option>
+                        <option value="custom">Custom Dimensions</option>
+                    </select>
+                </div>
+
+                <div id="customDimensions" class="control-group hidden">
+                    <label for="outputWidthCustom">Custom Width (px):</label>
+                    <input type="number" id="outputWidthCustom" placeholder="e.g., 1920">
+                    <label for="outputHeightCustom">Custom Height (px):</label>
+                    <input type="number" id="outputHeightCustom" placeholder="e.g., 1080">
+                </div>
+
+                <div class="control-group" id="targetWidthGroup">
+                    <label for="outputWidth">3. Target Width (px):</label>
+                    <input type="number" id="outputWidth" placeholder="e.g., 1280">
+                    <p class="info">Height will be calculated automatically. If 'Custom Dimensions' is selected, use fields above.</p>
+                </div>
+
+                 <div class="control-group">
+                    <label for="resizeMode">4. Resize Mode:</label>
+                    <select id="resizeMode">
+                        <option value="crop">Crop to Fit Aspect Ratio</option>
+                        <option value="fit">Fit with Background (Letterbox)</option>
+                    </select>
+                </div>
+                <div id="backgroundColorGroup" class="control-group hidden">
+                    <label for="backgroundColor">Background Color (for 'Fit' mode):</label>
+                    <input type="color" id="backgroundColor" value="#FFFFFF">
+                </div>
+
+                <div class="control-group">
+                    <label for="imageQuality">5. Image Quality (JPEG/WebP):</label>
+                    <input type="range" id="imageQuality" min="0.1" max="1.0" step="0.05" value="0.9">
+                    <span id="qualityValue">0.9</span>
+                </div>
+
+                <div class="control-group">
+                    <label for="outputFormat">6. Output Format:</label>
+                    <select id="outputFormat">
+                        <option value="image/jpeg">JPEG</option>
+                        <option value="image/png">PNG</option>
+                        <option value="image/webp">WebP</option>
+                    </select>
+                </div>
+
+                <button id="downloadButton" disabled>Download Resized Image</button>
+            </div>
+
+            <div class="preview-area">
+                <h2>Preview</h2>
+                <canvas id="imageCanvas"></canvas>
+                <p id="outputDimensionsText"></p>
+                <p id="imageName"></p>
+            </div>
+        </div>
+
+        <div class="ad-space ad-leaderboard">
+            <p>Advertisement</p>
+            </div>
+    </main>
+
+    <section class="instructions">
+        <h2>How to Use</h2>
+        <ol>
+            <li>Click "Upload Image" and select your image file (JPEG, PNG, WebP, GIF).</li>
+            <li>Choose your desired "Aspect Ratio". For specific dimensions, select "Custom Dimensions" and enter width and height.</li>
+            <li>If not using "Custom Dimensions", enter your desired "Target Width". The height will adjust based on the selected aspect ratio.</li>
+            <li>Select "Resize Mode":
+                <ul>
+                    <li><b>Crop to Fit Aspect Ratio:</b> The image will be cropped to perfectly match the target aspect ratio, then resized. No empty space will be visible.</li>
+                    <li><b>Fit with Background (Letterbox):</b> The entire image will be made to fit within the target aspect ratio. If the aspect ratios don't match, empty space will be filled with your chosen background color.</li>
+                </ul>
+            </li>
+            <li>Adjust the "Image Quality" slider (for JPEG/WebP formats) to balance file size and visual quality.</li>
+            <li>Select your preferred "Output Format".</li>
+            <li>The preview will update. Click "Download Resized Image".</li>
+        </ol>
+    </section>
+
+    <aside class="ad-space ad-rectangle">
+        <p>Advertisement</p>
+        </aside>
+
+    <footer>
+        <p>&copy; <span id="currentYear"></span> Your Website Name. All rights reserved.</p>
+        </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
