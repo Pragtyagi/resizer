@@ -21,6 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let originalImage = null;
     let originalFileName = 'resized_image';
 
+    const setCanvasMessage = (message) => {
+        const C_WIDTH = 300;
+        const C_HEIGHT = 150;
+        if (canvas.width !== C_WIDTH) canvas.width = C_WIDTH;
+        if (canvas.height !== C_HEIGHT) canvas.height = C_HEIGHT;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#555";
+        ctx.textAlign = "center";
+        ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = "left"; // Reset alignment
+    };
+
     // Update quality value display
     imageQualitySlider.addEventListener('input', () => {
         qualityValueSpan.textContent = parseFloat(imageQualitySlider.value).toFixed(2);
@@ -30,13 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners for controls
     imageUpload.addEventListener('change', handleImageUpload);
     aspectRatioSelect.addEventListener('change', handleAspectRatioChange);
+
     [outputWidthInput, outputWidthCustomInput, outputHeightCustomInput, outputFormatSelect, resizeModeSelect, backgroundColorInput].forEach(el => {
-        el.addEventListener('change', () => {
+        const eventType = (el.type === 'number' || el.type === 'text') ? 'input' : 'change';
+        el.addEventListener(eventType, () => {
             if (originalImage) processImage();
         });
-    });
-    outputWidthInput.addEventListener('input', () => { // For faster feedback on width input
-         if (originalImage) processImage();
     });
 
 
@@ -47,11 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) {
             originalFileName = file.name.split('.')[0] || 'resized_image';
             imageNameP.textContent = `Source: ${file.name}`;
+            console.log("Image selected:", file.name);
             const reader = new FileReader();
             reader.onload = (e) => {
                 originalImage = new Image();
                 originalImage.onload = () => {
-                    // Set initial output width to original image width or a sensible default
+                    console.log("Original image loaded:", originalImage.naturalWidth, "x", originalImage.naturalHeight);
                     if (aspectRatioSelect.value === 'original' || !outputWidthInput.value) {
                         outputWidthInput.value = originalImage.naturalWidth > 1280 ? 1280 : originalImage.naturalWidth;
                     }
@@ -59,82 +72,107 @@ document.addEventListener('DOMContentLoaded', () => {
                     downloadButton.disabled = false;
                 };
                 originalImage.onerror = () => {
-                    alert("Error loading image. Please try a different file.");
+                    console.error("Error loading image object. Please try a different file.");
+                    alert("Error loading image. The file might be corrupted or an unsupported format.");
                     resetTool();
                 }
                 originalImage.src = e.target.result;
+            };
+            reader.onerror = () => {
+                console.error("FileReader error.");
+                alert("Error reading file. Please try again.");
+                resetTool();
             };
             reader.readAsDataURL(file);
         }
     }
 
     function handleAspectRatioChange() {
-        if (aspectRatioSelect.value === 'custom') {
-            customDimensionsDiv.classList.remove('hidden');
-            targetWidthGroup.classList.add('hidden');
-            // If custom is selected, and values exist, trigger process
-            if (originalImage && outputWidthCustomInput.value && outputHeightCustomInput.value) {
-                 processImage();
-            }
-        } else {
-            customDimensionsDiv.classList.add('hidden');
-            targetWidthGroup.classList.remove('hidden');
-            if (originalImage) processImage();
+        const isCustom = aspectRatioSelect.value === 'custom';
+        customDimensionsDiv.classList.toggle('hidden', !isCustom);
+        targetWidthGroup.classList.toggle('hidden', isCustom);
+
+        if (originalImage) {
+            processImage();
         }
     }
 
     resizeModeSelect.addEventListener('change', () => {
-        if (resizeModeSelect.value === 'fit') {
-            backgroundColorGroup.classList.remove('hidden');
-        } else {
-            backgroundColorGroup.classList.add('hidden');
-        }
+        backgroundColorGroup.classList.toggle('hidden', resizeModeSelect.value !== 'fit');
         if (originalImage) processImage();
     });
 
 
     function processImage() {
-        if (!originalImage) return;
+        if (!originalImage) {
+            console.log("processImage called, but no originalImage.");
+            setCanvasMessage("Upload an image to start.");
+            return;
+        }
+        console.log("Processing image...");
 
         let targetWidth, targetHeight;
         const selectedAspectRatio = aspectRatioSelect.value;
         const resizeMode = resizeModeSelect.value;
 
+        const imgWidth = originalImage.naturalWidth;
+        const imgHeight = originalImage.naturalHeight;
+
+        if (imgWidth === 0 || imgHeight === 0) {
+            outputDimensionsText.textContent = "Image has invalid dimensions (0).";
+            setCanvasMessage("Invalid image dimensions.");
+            console.warn("Image has zero dimensions.");
+            return;
+        }
+
         if (selectedAspectRatio === 'custom') {
             targetWidth = parseInt(outputWidthCustomInput.value);
             targetHeight = parseInt(outputHeightCustomInput.value);
             if (isNaN(targetWidth) || targetWidth <= 0 || isNaN(targetHeight) || targetHeight <= 0) {
-                outputDimensionsText.textContent = "Please enter valid custom dimensions.";
-                canvas.width = 300; canvas.height = 150; // Default placeholder
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillText("Enter custom width & height", 10, 50);
+                outputDimensionsText.textContent = "Enter valid custom dimensions.";
+                setCanvasMessage("Enter custom width & height.");
+                console.log("Custom dimensions invalid or not set.");
                 return;
             }
         } else {
             targetWidth = parseInt(outputWidthInput.value);
             if (isNaN(targetWidth) || targetWidth <= 0) {
-                outputDimensionsText.textContent = "Please enter a valid target width.";
-                 canvas.width = 300; canvas.height = 150; // Default placeholder
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillText("Enter target width", 10, 50);
+                outputDimensionsText.textContent = "Enter a valid target width.";
+                setCanvasMessage("Enter target width.");
+                console.log("Target width invalid or not set.");
                 return;
             }
 
             if (selectedAspectRatio === 'original') {
-                targetHeight = Math.round(targetWidth * (originalImage.naturalHeight / originalImage.naturalWidth));
+                if (imgWidth === 0) { // Should be caught by earlier check
+                    outputDimensionsText.textContent = "Image has zero width.";
+                    setCanvasMessage("Image has zero width.");
+                    return;
+                }
+                targetHeight = Math.round(targetWidth * (imgHeight / imgWidth));
             } else {
                 const [arW, arH] = selectedAspectRatio.split(':').map(Number);
+                if (arW === 0) {
+                     outputDimensionsText.textContent = "Aspect ratio error.";
+                     setCanvasMessage("Aspect ratio error.");
+                     console.warn("Aspect ratio width component is zero.");
+                     return;
+                }
                 targetHeight = Math.round(targetWidth * (arH / arW));
             }
         }
-
+        
+        if (targetHeight <= 0) {
+            outputDimensionsText.textContent = "Calculated height is invalid.";
+            setCanvasMessage("Calculated height invalid.");
+            console.warn("Calculated targetHeight is zero or negative.");
+            return;
+        }
 
         canvas.width = targetWidth;
         canvas.height = targetHeight;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawing
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const imgWidth = originalImage.naturalWidth;
-        const imgHeight = originalImage.naturalHeight;
         const imgAR = imgWidth / imgHeight;
         const canvasAR = targetWidth / targetHeight;
 
@@ -142,60 +180,76 @@ document.addEventListener('DOMContentLoaded', () => {
         let dx = 0, dy = 0, dWidth = targetWidth, dHeight = targetHeight;
 
         if (resizeMode === 'crop') {
-            if (imgAR > canvasAR) { // Image is wider than canvas aspect ratio (need to crop sides)
+            console.log("Resize mode: Crop");
+            if (imgAR > canvasAR) {
                 sHeight = imgHeight;
                 sWidth = sHeight * canvasAR;
                 sx = (imgWidth - sWidth) / 2;
-            } else if (imgAR < canvasAR) { // Image is taller than canvas aspect ratio (need to crop top/bottom)
+            } else if (imgAR < canvasAR) {
                 sWidth = imgWidth;
                 sHeight = sWidth / canvasAR;
                 sy = (imgHeight - sHeight) / 2;
             }
-            // If aspect ratios are the same, no cropping needed from source, s variables remain full image
         } else { // 'fit' mode (letterbox/pillarbox)
+            console.log("Resize mode: Fit");
             ctx.fillStyle = backgroundColorInput.value;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (imgAR > canvasAR) { // Image wider, fit by width
                 dHeight = targetWidth / imgAR;
                 dy = (targetHeight - dHeight) / 2;
+                // dWidth remains targetWidth, dx remains 0
             } else { // Image taller or same AR, fit by height
                 dWidth = targetHeight * imgAR;
                 dx = (targetWidth - dWidth) / 2;
+                // dHeight remains targetHeight, dy remains 0
             }
         }
-
+        
+        console.log(`Drawing: sx:${sx}, sy:${sy}, sW:${sWidth}, sH:${sHeight} -> dx:${dx}, dy:${dy}, dW:${dWidth}, dH:${dHeight}`);
         try {
             ctx.drawImage(originalImage, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
             outputDimensionsText.textContent = `Output: ${targetWidth}px × ${targetHeight}px`;
+            console.log("Image drawn successfully to canvas.");
         } catch (e) {
-            console.error("Error drawing image:", e);
+            console.error("Error drawing image to canvas:", e);
             outputDimensionsText.textContent = "Error processing image.";
+            setCanvasMessage("Error drawing image.");
         }
     }
 
     function downloadImage() {
-        if (!originalImage || canvas.width === 0 || canvas.height === 0) {
-            alert("No image processed to download or dimensions are zero.");
+        if (!originalImage || canvas.width <= 0 || canvas.height <= 0) {
+            alert("No image processed to download, or dimensions are invalid.");
             return;
         }
         const format = outputFormatSelect.value;
         const quality = parseFloat(imageQualitySlider.value);
-        const dataURL = canvas.toDataURL(format, format === 'image/png' ? undefined : quality);
+        let dataURL;
+        try {
+            dataURL = canvas.toDataURL(format, format.startsWith('image/png') ? undefined : quality);
+        } catch (e) {
+            console.error("Error converting canvas to DataURL:", e);
+            alert(`Error creating image file. The canvas dimensions might be too large or an issue occurred with the format ${format}.`);
+            return;
+        }
+
 
         const link = document.createElement('a');
-        const fileExtension = format.split('/')[1];
+        const fileExtension = format.split('/')[1] || 'bin';
         link.download = `${originalFileName}_resized.${fileExtension}`;
         link.href = dataURL;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        console.log("Image download initiated.");
     }
 
     function resetTool() {
+        console.log("Resetting tool.");
         originalImage = null;
-        imageUpload.value = ''; // Clear file input
-        outputWidthInput.value = '';
+        if(imageUpload.value) imageUpload.value = '';
+        outputWidthInput.value = '1280'; // Sensible default
         outputWidthCustomInput.value = '';
         outputHeightCustomInput.value = '';
         aspectRatioSelect.value = 'original';
@@ -207,26 +261,22 @@ document.addEventListener('DOMContentLoaded', () => {
         imageQualitySlider.value = 0.9;
         qualityValueSpan.textContent = '0.90';
         outputFormatSelect.value = 'image/jpeg';
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        canvas.width = 300; canvas.height = 150; // Reset canvas to a default size
-        ctx.fillText("Upload an image to start.", 10, 50);
+        
+        setCanvasMessage("Upload an image to start.");
         outputDimensionsText.textContent = '';
         imageNameP.textContent = '';
         downloadButton.disabled = true;
+
+        // Initial UI state based on selections
+        handleAspectRatioChange(); 
+        backgroundColorGroup.classList.toggle('hidden', resizeModeSelect.value !== 'fit');
     }
 
     // Set current year in footer
-    document.getElementById('currentYear').textContent = new Date().getFullYear();
-
-    // Initial setup
-    resetTool(); // Call reset to set initial placeholder text on canvas
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#555";
-    ctx.fillText("Upload an image to start.", 10, 50);
-    handleAspectRatioChange(); // Ensure correct UI for custom dimensions
-    if (resizeModeSelect.value === 'fit') { // Ensure correct UI for background color
-        backgroundColorGroup.classList.remove('hidden');
-    } else {
-        backgroundColorGroup.classList.add('hidden');
+    const currentYearSpan = document.getElementById('currentYear');
+    if (currentYearSpan) {
+        currentYearSpan.textContent = new Date().getFullYear();
     }
+
+    resetTool();
 });
